@@ -15,6 +15,8 @@
 
 #define DEFAULT_DEST_IP "127.0.0.1"
 #define PACKET_SIZE 1024
+#define DEFAULT_SPECFILE_DIR "../specfiles"
+#define MAX_SPECFILE_PATH_LEN 1024
 
 char* get_arg_val(char* key, char**arg_list, int len)
 {
@@ -37,6 +39,9 @@ int main(int argc, char**argv)
     char* packet_type = NULL;
     char* network_layer_str = NULL;
     int network_layer = DEFAULT_NETWORK_LAYER;
+
+    char *specfile_dir = NULL;
+    char specfile_path[MAX_SPECFILE_PATH_LEN];
 
     char ip_packet[PACKET_SIZE];
     int len_ip_packet;
@@ -63,6 +68,20 @@ int main(int argc, char**argv)
         return -1;
     }
 
+    /* Construct specfile path for given packet type */
+    specfile_dir = get_arg_val("--spec-dir", argv, argc);
+    if (specfile_dir == NULL) {
+        specfile_dir = DEFAULT_SPECFILE_DIR;
+    }
+
+    /* TODO: use snprintf */
+    sprintf(specfile_path, "%s/%s", specfile_dir, packet_type);
+    printf("specfile_path: %s\n", specfile_path);
+
+
+
+
+
     /*Get optional non packet attribute arguments */
     network_layer_str = get_arg_val("--network-layer", argv, argc);
     if (network_layer_str != NULL) {
@@ -80,7 +99,7 @@ int main(int argc, char**argv)
 
     /* handle packet creation based on spec */
 
-    num_attrs = load_packet("../specfiles/tcp", &packet_attrs);
+    num_attrs = load_packet(specfile_path, &packet_attrs);
     if (num_attrs < 0) {
         printf("Error: failed to load packet spec for file %s\n", "../specfiles/tcp");
         return -1;
