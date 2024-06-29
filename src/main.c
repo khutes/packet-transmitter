@@ -44,6 +44,9 @@ int main(int argc, char**argv)
     int sockfd;
     struct sockaddr_in dest_addr;
 
+    struct packet_attr *packet_attrs = NULL;
+    int num_attrs = 0;
+
 
     printf("Starting packet transmitter\n");
     printf("argc: %d\n", argc);
@@ -76,6 +79,15 @@ int main(int argc, char**argv)
     printf("packet-type: %s\n", packet_type);
 
     /* handle packet creation based on spec */
+
+    num_attrs = load_packet("../specfiles/tcp", &packet_attrs);
+    if (num_attrs < 0) {
+        printf("Error: failed to load packet spec for file %s\n", "../specfiles/tcp");
+        return -1;
+    }
+    print_all_packet_attrs(packet_attrs, num_attrs);     
+    
+
     
     /* Socket setup */
     sockfd = socket(AF_INET, SOCK_RAW, IPPROTO_RAW);
