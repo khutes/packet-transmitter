@@ -55,6 +55,9 @@ int main(int argc, char**argv)
     struct packet_attr *pseudo_header_packet_attrs = NULL;
     int pseudo_header_num_attrs = 0;
 
+    char *packet_payload = NULL;
+    int packet_payload_size = 0;
+
 
     printf("Starting packet transmitter\n");
     printf("argc: %d\n", argc);
@@ -114,10 +117,23 @@ int main(int argc, char**argv)
         printf("Error: failed to load packet spec for file %s\n", "../specfiles/tcp");
         return -1;
     }
-    print_all_packet_attrs(packet_attrs, num_attrs);     
     
+    /*PSEUDO HEADER */
+    pseudo_header_num_attrs = load_packet_pseudo_header(specfile_content, &pseudo_header_packet_attrs);
+    if (pseudo_header_num_attrs < 0) {
+        printf("Error: failed to load pseudo header spec for file %s\n", "../specfiles/tcp");
+        return -1;
+    }
 
-    
+    /* Get payload */
+
+
+    /* Print all */
+    print_all_packet_attrs(packet_attrs, num_attrs);     
+    print_all_packet_attrs(pseudo_header_packet_attrs, pseudo_header_num_attrs);     
+   
+    packet_payload_size = load_packet_data(specfile_content, &packet_payload);
+
     /* Socket setup */
     sockfd = socket(AF_INET, SOCK_RAW, IPPROTO_RAW);
     if (sockfd == -1) {

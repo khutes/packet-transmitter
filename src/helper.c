@@ -142,20 +142,75 @@ int read_file_contents(char *filepath, char **output_buffer)
 
 }
 
+int load_packet_data(char *spec_content, char** input_buffer) {
 
 
-
-
-int load_packet_pseudoheader(char *packet_file_path, struct packet_attr **input_attr_array)
-{
-
+    char line[MAX_ATTRIBUTE_LINE_LEN];
+    int line_len;
     
+    char *start;
+    char *end;
+    char *buffer;
+    bool data_found = false;
+    start = spec_content;
+    /* Move forward until at "DATA" */
+    while ((end = strchr(start, '\n')) != NULL) {
+
+        line_len = end - start;
+        strncpy(line, start, line_len);
+        line[line_len] = '\0';
+
+        if (strcmp(line, "DATA") == 0) {
+            start = end + 1;
+            data_found = true;
+            break;
+        }
+
+        start = end + 1;
+    }
+
+    if (!data_found) {
+        return 0;
+    }
+    
+    buffer = (char *)calloc(sizeof(char), strlen(start) - 1);
+    memcpy(buffer, start, strlen(start) - 1);
+    *input_buffer = buffer;
+
+   return strlen(start) - 1;
+}
 
 
 
+int load_packet_pseudo_header(char *spec_content, struct packet_attr **input_attr_array)
+{       
+    char line[MAX_ATTRIBUTE_LINE_LEN];
+    int line_len;
+    
+    char *start;
+    char *end;
+    start = spec_content;
+    bool ps_header_found = false;
+    while ((end = strchr(start, '\n')) != NULL) {
 
+        line_len = end - start;
+        strncpy(line, start, line_len);
+        line[line_len] = '\0';
 
-    return 0;
+        if (strcmp(line, "PSEUDOHEADER") == 0) {
+            start = end + 1;
+            ps_header_found = true;
+            break;
+        }
+
+        start = end + 1;
+    }
+
+    if (!ps_header_found) {
+        return 0;
+    }
+
+    return load_packet(start, input_attr_array);
 }
 
 int load_packet(char *spec_content, struct packet_attr **input_attr_array)
@@ -181,7 +236,6 @@ int load_packet(char *spec_content, struct packet_attr **input_attr_array)
             line_len = end - start;
             strncpy(line, start, line_len);
             line[line_len] = '\0';
-            printf("%s\n", line);
             if (line_count == 0) {
                 max_packet_size = atoi(line);
                 if (max_packet_size == 0) {
@@ -232,7 +286,6 @@ int load_packet(char *spec_content, struct packet_attr **input_attr_array)
             } else {
                 /* We got an attribute */
                 sscanf(line, attr_format_str, attr_array[i].name, &(attr_array[i].len));
-                printf("name: %s, len %d\n", attr_array[i].name, attr_array[i].len); 
 
                 if (attr_array[i].name[0] == '$') {
                     attr_array[i].is_checksum = true;
@@ -243,14 +296,13 @@ int load_packet(char *spec_content, struct packet_attr **input_attr_array)
                     /* Count number of child attributes */
                     attr_array[i].num_children = 0;
                     start = end + 1;
-                    save_ptr = start; //end + 1;
+                    save_ptr = start;
                     while ((end = strchr(start, '\n')) != NULL) {
                         line_len = end - start;
                         strncpy(line, start, line_len);
                         line[line_len] = '\0';
 
                         if (!isblank(line[0])) {
-                            printf("BREAK\n");
                             break;
                         }
                         attr_array[i].num_children++;
@@ -265,8 +317,6 @@ int load_packet(char *spec_content, struct packet_attr **input_attr_array)
                         return -1;
                     }
 
-                    printf("HERE\n");
-
                     start = save_ptr;
                     /* Get child attribute values */
                     for (int child_idx=0; child_idx<attr_array[i].num_children; child_idx++) {
@@ -280,7 +330,6 @@ int load_packet(char *spec_content, struct packet_attr **input_attr_array)
                         line[line_len] = '\0';
 
                         if (!isblank(line[0])) {
-                            //start = save_ptr;
                             break;
                         }
                         save_ptr = start;
@@ -289,9 +338,6 @@ int load_packet(char *spec_content, struct packet_attr **input_attr_array)
                         attr_array[i].child_attrs[child_idx].value = (char *)calloc(sizeof(char), 
                                 attr_array[i].child_attrs[child_idx].len*2);
 
-                        /* copy len*2 bytes of memory from current fp - len*2 
-                         * multiply by 2 since len represents number of octets and each octect is represented by 2 chars
-                         */
                         value_copy_size = attr_array[i].child_attrs[child_idx].len * 2;
                         copy_pointer = line + (strlen(line) - value_copy_size);
                         if (!memcpy(attr_array[i].child_attrs[child_idx].value, copy_pointer, value_copy_size)) {
