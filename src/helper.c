@@ -7,6 +7,7 @@
 #include <string.h>
 #include <ctype.h>
 #include <stdbool.h>
+#include <sys/file.h>
 
 #include "helper.h"
 
@@ -76,7 +77,6 @@ void print_packet_attr(struct packet_attr attr)
     if (attr.child_attrs != NULL) {
 
         for (int i=0; i<attr.num_children; i++) {
-            printf("printsize: %d\n", attr.child_attrs[i].len*2);
             printf("\t(%d): %.*s\n", attr.child_attrs[i].len, attr.child_attrs[i].len*2, attr.child_attrs[i].value);
         }
     }
@@ -91,31 +91,97 @@ void print_all_packet_attrs(struct packet_attr *attr_array, int num_attrs)
     printf("==============================\n");
 }
 
-int load_packet(char *packet_file_path, struct packet_attr **input_attr_array)
+int read_file_contents(char *filepath, char **output_buffer)
 {
+
     FILE *fp;
+    char *buffer = NULL;
+    int file_size;
+    int bytes_read;
+    int fd;
+
+    fp = fopen(filepath, "r");
+    if (fp == NULL) {
+        printf("Error: Unable to open file %s\n", filepath);
+        return -1;
+    }
+
+    fd = fileno(fp);
+
+    if(flock(fd, LOCK_SH) == -1) {
+        printf("Error: Unable to lock file %s\n", filepath);
+        fclose(fp);
+        return -1;
+    }
+
+    fseek(fp, 0, SEEK_END);
+    file_size = ftell(fp);
+    fseek(fp, 0, SEEK_SET);
+
+    buffer = (char *)calloc(sizeof(char), file_size + 1);
+    if (buffer == NULL) {
+        printf("Error: error allocating buffer for file read\n");
+        fclose(fp);
+        return -1;
+    }
+
+    bytes_read = fread(buffer, 1, file_size, fp);
+    if (bytes_read != file_size) {
+        printf("Error: failed to read file %s\n", filepath);
+        fclose(fp);
+        free(buffer);
+        return -1;
+    }
+
+    buffer[file_size] = '\0';
+    flock(fd, LOCK_UN);
+    fclose(fp);
+    *output_buffer = buffer;
+
+    return 0;
+
+}
+
+
+
+
+
+int load_packet_pseudoheader(char *packet_file_path, struct packet_attr **input_attr_array)
+{
+
+    
+
+
+
+
+
+    return 0;
+}
+
+int load_packet(char *spec_content, struct packet_attr **input_attr_array)
+{
     char line[MAX_ATTRIBUTE_LINE_LEN];
+    int line_len;
     int max_packet_size;
     int line_count = 0;
     int attr_count = 0;
     int i = 0;
-    int fp_save = 0;
+    char *save_ptr;
     int value_copy_size = 0;
     char *copy_pointer = NULL;
     struct packet_attr* attr_array = NULL;
-
+    char *start;
+    char *end;
     char *attr_format_str = "%s %d"; /* Used to get name and length */
 
-    fp = fopen(packet_file_path, "r");
-    if (fp == NULL) {
-        printf("Error: Unable to open %s\n", packet_file_path);
-        return -1;
-    }
-
     /* Get the number of attributes */
-    while (fgets(line, sizeof(line), fp)) {
-            printf("%s", line);
-            remove_newline(line);
+    start = spec_content;
+    while ((end = strchr(start, '\n')) != NULL) {
+            
+            line_len = end - start;
+            strncpy(line, start, line_len);
+            line[line_len] = '\0';
+            printf("%s\n", line);
             if (line_count == 0) {
                 max_packet_size = atoi(line);
                 if (max_packet_size == 0) {
@@ -128,13 +194,11 @@ int load_packet(char *packet_file_path, struct packet_attr **input_attr_array)
                 break;
             } else if (strcmp("END", line) == 0) {
                 break;
-            } else if (isblank(line[0])) {     /* Don't count child attributes in main attribute count */
-                    continue;
-            } else {
-                /* We got an attribute */
+            } else if (!isblank(line[0])) {     /* Don't count child attributes in main attribute count */
                 attr_count++;
             }
             line_count++;
+            start = end + 1;
     }
 
     /* Allocate attribute array */
@@ -144,14 +208,18 @@ int load_packet(char *packet_file_path, struct packet_attr **input_attr_array)
         return -1;
     }
     
-    fseek(fp, 0, SEEK_SET);
+    start = spec_content;
     line_count = 0;
-    
     /* Get values for each attribute */
-    while (fgets(line, sizeof(line), fp)) {
-            remove_newline(line);
+    while ((end = strchr(start, '\n')) != NULL) {
+
+            line_len = end - start;
+            strncpy(line, start, line_len);
+            line[line_len] = '\0';
+
             if (line_count == 0) {
                 line_count++;
+                start = end + 1;
                 continue;
             } else if (strcmp("DATA", line) == 0) { 
                 break;
@@ -172,18 +240,21 @@ int load_packet(char *packet_file_path, struct packet_attr **input_attr_array)
 
                 /* alloc value of attribute based on the read in length */
                 if (attr_array[i].len == -1) {
-                    printf("Variable length attr\n");
-
                     /* Count number of child attributes */
                     attr_array[i].num_children = 0;
-                    fp_save = ftell(fp);
-                    while (fgets(line, sizeof(line), fp)) {
+                    start = end + 1;
+                    save_ptr = start; //end + 1;
+                    while ((end = strchr(start, '\n')) != NULL) {
+                        line_len = end - start;
+                        strncpy(line, start, line_len);
+                        line[line_len] = '\0';
 
-                        remove_newline(line);
                         if (!isblank(line[0])) {
+                            printf("BREAK\n");
                             break;
                         }
                         attr_array[i].num_children++;
+                        start = end + 1;
 
                     }
                     
@@ -194,19 +265,25 @@ int load_packet(char *packet_file_path, struct packet_attr **input_attr_array)
                         return -1;
                     }
 
-                    fseek(fp, fp_save, SEEK_SET);
+                    printf("HERE\n");
+
+                    start = save_ptr;
                     /* Get child attribute values */
                     for (int child_idx=0; child_idx<attr_array[i].num_children; child_idx++) {
-                        if (!fgets(line, sizeof(line), fp)) {
+                        if ((end = strchr(start, '\n')) == NULL) {
                             printf("Read Error: Error reading child attributes\n");
                             return -1;
                         }
-                        remove_newline(line);
+
+                        line_len = end - start;
+                        strncpy(line, start, line_len);
+                        line[line_len] = '\0';
+
                         if (!isblank(line[0])) {
-                            fseek(fp, fp_save, SEEK_SET);
+                            //start = save_ptr;
                             break;
                         }
-                        fp_save = ftell(fp);
+                        save_ptr = start;
                         
                         sscanf(line, "%d", &(attr_array[i].child_attrs[child_idx].len));
                         attr_array[i].child_attrs[child_idx].value = (char *)calloc(sizeof(char), 
@@ -220,6 +297,7 @@ int load_packet(char *packet_file_path, struct packet_attr **input_attr_array)
                         if (!memcpy(attr_array[i].child_attrs[child_idx].value, copy_pointer, value_copy_size)) {
                             printf("Error: Memory copy of child attribute value failed\n");
                         }
+                        start = end + 1;
                     }
 
 
@@ -240,10 +318,10 @@ int load_packet(char *packet_file_path, struct packet_attr **input_attr_array)
                 i++;
             }
             line_count++;
+            start = end + 1;
     }
 
     *input_attr_array = attr_array;
-    fclose(fp);
 
     return attr_count;
 

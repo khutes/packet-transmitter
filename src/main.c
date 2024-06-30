@@ -42,6 +42,7 @@ int main(int argc, char**argv)
 
     char *specfile_dir = NULL;
     char specfile_path[MAX_SPECFILE_PATH_LEN];
+    char *specfile_content;
 
     char ip_packet[PACKET_SIZE];
     int len_ip_packet;
@@ -51,6 +52,8 @@ int main(int argc, char**argv)
 
     struct packet_attr *packet_attrs = NULL;
     int num_attrs = 0;
+    struct packet_attr *pseudo_header_packet_attrs = NULL;
+    int pseudo_header_num_attrs = 0;
 
 
     printf("Starting packet transmitter\n");
@@ -98,8 +101,15 @@ int main(int argc, char**argv)
     printf("packet-type: %s\n", packet_type);
 
     /* handle packet creation based on spec */
+    
+    if (read_file_contents(specfile_path, &specfile_content) < 0) {
+        printf("Error: failed to read file content for %s\n", specfile_path);
+        return -1;
+    }
+    printf("SPC: %s\n", specfile_content);
 
-    num_attrs = load_packet(specfile_path, &packet_attrs);
+    
+    num_attrs = load_packet(specfile_content, &packet_attrs);
     if (num_attrs < 0) {
         printf("Error: failed to load packet spec for file %s\n", "../specfiles/tcp");
         return -1;
