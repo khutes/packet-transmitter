@@ -52,12 +52,15 @@ int main(int argc, char**argv)
 
     struct packet_attr *packet_attrs = NULL;
     int num_attrs = 0;
+    int max_header_size = 0;
     struct packet_attr *pseudo_header_packet_attrs = NULL;
     int pseudo_header_num_attrs = 0;
+    int max_pseudo_header_size = 0;
 
     char *packet_payload = NULL;
     int packet_payload_size = 0;
 
+    unsigned char *serial_header = NULL;
 
     printf("Starting packet transmitter\n");
     printf("argc: %d\n", argc);
@@ -112,20 +115,25 @@ int main(int argc, char**argv)
     printf("SPC: %s\n", specfile_content);
 
     
-    num_attrs = load_packet(specfile_content, &packet_attrs);
+    num_attrs = load_packet(specfile_content, &packet_attrs, &max_header_size);
     if (num_attrs < 0) {
         printf("Error: failed to load packet spec for file %s\n", "../specfiles/tcp");
         return -1;
     }
+    printf("DONE LOADING PACKET\n");
     
     /*PSEUDO HEADER */
-    pseudo_header_num_attrs = load_packet_pseudo_header(specfile_content, &pseudo_header_packet_attrs);
+    pseudo_header_num_attrs = load_packet_pseudo_header(specfile_content, &pseudo_header_packet_attrs, &max_pseudo_header_size);
     if (pseudo_header_num_attrs < 0) {
         printf("Error: failed to load pseudo header spec for file %s\n", "../specfiles/tcp");
         return -1;
     }
 
     /* Get payload */
+    serial_header = (unsigned char *)calloc(sizeof(unsigned char), max_header_size);
+    int n = serialize_packet_header(packet_attrs, num_attrs, serial_header, max_header_size);
+    printf("written_bytes: %d\n", n);
+    print_binary(serial_header, n);
 
 
     /* Print all */
@@ -133,6 +141,7 @@ int main(int argc, char**argv)
     print_all_packet_attrs(pseudo_header_packet_attrs, pseudo_header_num_attrs);     
    
     packet_payload_size = load_packet_data(specfile_content, &packet_payload);
+    printf("HERE\n");
 
     /* Socket setup */
     sockfd = socket(AF_INET, SOCK_RAW, IPPROTO_RAW);

@@ -142,6 +142,66 @@ int read_file_contents(char *filepath, char **output_buffer)
 
 }
 
+void print_binary(unsigned char *buffer, int len)
+{
+    unsigned char c;
+    for (int i = 0; i < len; ++i) {
+        c = buffer[i];
+        for (int j = 7; j >= 0; --j) {
+            printf("%d", (c >> j) & 1);
+        }
+        printf(" ");
+    }
+    printf("\n");
+}
+
+int convert_hex_to_bytes(char *hex_buffer, unsigned char *byte_array, int byte_array_len) {
+
+    for (int i=0; i<byte_array_len; i++) {
+        sscanf(hex_buffer + (2 * i), "%2hhx", &byte_array[i]);
+    }
+
+    return 0;
+}
+
+int serialize_packet_header(struct packet_attr *packet_attrs, int num_attrs, unsigned char *serialized_header, int max_header_size) {
+
+    unsigned char *bytes = NULL;
+    unsigned char *full_packet = NULL;
+    int written_bytes = 0;
+    struct packet_attr curr_attr;
+    struct packet_attr curr_child;
+    printf("NUM ATTRS: %d\n", num_attrs);
+
+    for (int i=0; i< num_attrs; i++) {
+
+        curr_attr = packet_attrs[i];
+    
+        /* Is variable length, iterate through children */
+        if (curr_attr.len == -1) {
+            for (int j=0; j<curr_attr.num_children; j++) {
+                curr_child = curr_attr.child_attrs[j];
+                bytes = (unsigned char *)calloc(sizeof(unsigned char), curr_child.len);
+                convert_hex_to_bytes(curr_child.value, bytes, curr_child.len);
+                printf("(%d): %s -> ", curr_child.len, curr_child.value);
+                print_binary(bytes, curr_child.len);
+                memcpy(serialized_header + written_bytes, bytes, curr_child.len);
+                written_bytes +=  curr_child.len;
+            }
+        } else {
+            bytes = (unsigned char *)calloc(sizeof(unsigned char), curr_attr.len);
+            convert_hex_to_bytes(curr_attr.value, bytes, curr_attr.len);
+            printf("%s (%d): %s -> ", curr_attr.name, curr_attr.len, curr_attr.value);
+            print_binary(bytes, curr_attr.len);
+            memcpy(serialized_header + written_bytes, bytes, curr_attr.len);
+            written_bytes +=  curr_attr.len;
+            free(bytes);
+        }
+    }
+    return written_bytes;
+}
+
+
 int load_packet_data(char *spec_content, char** input_buffer) {
 
 
@@ -182,7 +242,7 @@ int load_packet_data(char *spec_content, char** input_buffer) {
 
 
 
-int load_packet_pseudo_header(char *spec_content, struct packet_attr **input_attr_array)
+int load_packet_pseudo_header(char *spec_content, struct packet_attr **input_attr_array, int* header_size)
 {       
     char line[MAX_ATTRIBUTE_LINE_LEN];
     int line_len;
@@ -210,10 +270,10 @@ int load_packet_pseudo_header(char *spec_content, struct packet_attr **input_att
         return 0;
     }
 
-    return load_packet(start, input_attr_array);
+    return load_packet(start, input_attr_array, header_size);
 }
 
-int load_packet(char *spec_content, struct packet_attr **input_attr_array)
+int load_packet(char *spec_content, struct packet_attr **input_attr_array, int *header_size)
 {
     char line[MAX_ATTRIBUTE_LINE_LEN];
     int line_len;
@@ -281,11 +341,12 @@ int load_packet(char *spec_content, struct packet_attr **input_attr_array)
                 break;
             } else if (strcmp("END", line) == 0) {
                 break;
-            } else if (isblank(line[0])) {     /* Don't count child attributes in main attribute count */
+            } else if (isblank(line[0])) { 
                     continue;
             } else {
                 /* We got an attribute */
                 sscanf(line, attr_format_str, attr_array[i].name, &(attr_array[i].len));
+                //printf("name: %s\n", attr_array[i].name);
 
                 if (attr_array[i].name[0] == '$') {
                     attr_array[i].is_checksum = true;
@@ -309,7 +370,9 @@ int load_packet(char *spec_content, struct packet_attr **input_attr_array)
                         start = end + 1;
 
                     }
-                    
+                    if (attr_array[i].num_children == 0) {
+                       continue;
+                    } 
                     attr_array[i].child_attrs = (struct packet_attr *)calloc(
                         sizeof(struct packet_attr), attr_array[i].num_children);
                     if (attr_array[i].child_attrs == NULL) {
@@ -342,6 +405,11 @@ int load_packet(char *spec_content, struct packet_attr **input_attr_array)
                         copy_pointer = line + (strlen(line) - value_copy_size);
                         if (!memcpy(attr_array[i].child_attrs[child_idx].value, copy_pointer, value_copy_size)) {
                             printf("Error: Memory copy of child attribute value failed\n");
+                            return -1;
+                        }
+                        if (attr_array[i].child_attrs[child_idx].value[0] == 'x') {
+                            printf("Error: actual length of value for (%s) child number %d does not match specified length of (%d)\n", attr_array[i].name, child_idx, attr_array[i].child_attrs[child_idx].len);
+                            return -1;
                         }
                         start = end + 1;
                     }
@@ -358,6 +426,12 @@ int load_packet(char *spec_content, struct packet_attr **input_attr_array)
                     copy_pointer = line + (strlen(line) - value_copy_size);
                     if (!memcpy(attr_array[i].value, copy_pointer, value_copy_size)) {
                         printf("Error: Memory copy of attribute value failed\n");
+                        return -1;
+                    }
+
+                    if (attr_array[i].value[0] == 'x') {
+                        printf("Error: actual length of value for (%s) does not match specified length of (%d)\n", attr_array[i].name, attr_array[i].len);
+                        return -1;
                     }
 
                 }
@@ -368,6 +442,7 @@ int load_packet(char *spec_content, struct packet_attr **input_attr_array)
     }
 
     *input_attr_array = attr_array;
+    *header_size = max_packet_size;
 
     return attr_count;
 
