@@ -164,6 +164,19 @@ int convert_hex_to_bytes(char *hex_buffer, unsigned char *byte_array, int byte_a
     return 0;
 }
 
+int serialize_packet_pseudo_header(struct packet_attr *packet_attrs, int num_attrs, unsigned char *serialized_header, int max_header_size, int len_overwrite) {
+    struct packet_attr curr_attr;
+    /* Need to check if value of any attrs need to be overwritten before serializing */
+    for (int i=0; i<num_attrs; i++) {
+        curr_attr = packet_attrs[i];
+        if (curr_attr.overwrite_value) {
+            /*Convert len_overwrite to hex padded with 0s to keep len of the attribute the same */
+            sprintf(curr_attr.value, "%0*X", curr_attr.len * 2, len_overwrite);
+        }
+    }
+    return serialize_packet_header(packet_attrs, num_attrs, serialized_header, max_header_size);
+}
+
 int serialize_packet_header(struct packet_attr *packet_attrs, int num_attrs, unsigned char *serialized_header, int max_header_size) {
 
     unsigned char *bytes = NULL;
@@ -239,8 +252,6 @@ int load_packet_data(char *spec_content, char** input_buffer) {
 
    return strlen(start) - 1;
 }
-
-
 
 int load_packet_pseudo_header(char *spec_content, struct packet_attr **input_attr_array, int* header_size)
 {       
@@ -352,9 +363,9 @@ int load_packet(char *spec_content, struct packet_attr **input_attr_array, int *
                     attr_array[i].is_checksum = true;
                 } 
                 if (attr_array[i].name[0] == '^') {
-                    attr_array[i].use_real_header_len = true;
+                    attr_array[i].overwrite_value = true;
                 } else {
-                    attr_array[i].use_real_header_len = false;
+                    attr_array[i].overwrite_value = false;
                 }
 
                 /* alloc value of attribute based on the read in length */

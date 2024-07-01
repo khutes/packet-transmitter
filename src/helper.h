@@ -10,7 +10,7 @@ struct packet_attr
     int len;
     char *value;
     bool is_checksum;
-    bool use_real_header_len;   /* true if value should be overwritten with length of real header */
+    bool overwrite_value;   /* true if value should be overwritten with length of real header */
     struct packet_attr *child_attrs;
     int num_children;
 };
@@ -22,6 +22,7 @@ int load_packet_data(char *spec_content, char **input_buffer);
 void print_all_packet_attrs(struct packet_attr *attr_array, int num_attrs);
 int read_file_contents(char *filepath, char **output_buffer);
 int serialize_packet_header(struct packet_attr *packet_attrs, int num_attrs, unsigned char *serialized_header, int max_header_size);
+int serialize_packet_pseudo_header(struct packet_attr *packet_attrs, int num_attrs, unsigned char *serialized_header, int max_header_size, int len_overwrite);
 
 
 /* Debug functions */

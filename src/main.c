@@ -61,6 +61,7 @@ int main(int argc, char**argv)
     int packet_payload_size = 0;
 
     unsigned char *serial_header = NULL;
+    unsigned char *serial_pseudo_header = NULL;
 
     printf("Starting packet transmitter\n");
     printf("argc: %d\n", argc);
@@ -134,6 +135,13 @@ int main(int argc, char**argv)
     int n = serialize_packet_header(packet_attrs, num_attrs, serial_header, max_header_size);
     printf("written_bytes: %d\n", n);
     print_binary(serial_header, n);
+
+    /* Serialize pseudo header */
+    serial_pseudo_header = (unsigned char *)calloc(sizeof(unsigned char), max_header_size);
+    n = serialize_packet_pseudo_header(pseudo_header_packet_attrs, pseudo_header_num_attrs, serial_pseudo_header, max_pseudo_header_size, n);
+    printf("written_bytes PS: %d\n", n);
+    print_binary(serial_pseudo_header, n);
+
 
 
     /* Print all */
