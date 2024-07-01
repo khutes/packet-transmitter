@@ -350,6 +350,11 @@ int load_packet(char *spec_content, struct packet_attr **input_attr_array, int *
 
                 if (attr_array[i].name[0] == '$') {
                     attr_array[i].is_checksum = true;
+                } 
+                if (attr_array[i].name[0] == '^') {
+                    attr_array[i].use_real_header_len = true;
+                } else {
+                    attr_array[i].use_real_header_len = false;
                 }
 
                 /* alloc value of attribute based on the read in length */

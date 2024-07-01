@@ -10,6 +10,7 @@ struct packet_attr
     int len;
     char *value;
     bool is_checksum;
+    bool use_real_header_len;   /* true if value should be overwritten with length of real header */
     struct packet_attr *child_attrs;
     int num_children;
 };
