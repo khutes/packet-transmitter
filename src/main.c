@@ -36,8 +36,11 @@ int main(int argc, char**argv)
     char *specfile_dir = NULL;
     char specfile_path[MAX_SPECFILE_PATH_LEN];
 
-    char *num_packets_str;
+    char *num_packets_str = NULL;
     int num_packets = 0;
+
+    char *interval_str = NULL;
+    int interval;
 
     printf("Starting packet transmitter\n");
     printf("argc: %d\n", argc);
@@ -69,6 +72,22 @@ int main(int argc, char**argv)
         }
     }
 
+    interval_str = get_arg_val("--interval", argv, argc);
+    if (interval_str == NULL) {
+        interval = 0;
+    } else {
+        if (strcmp(interval_str, "0") == 0) {
+            interval = 0;
+        } else {
+            interval = atoi(interval_str);
+            if (interval <= 0) {
+                printf("Error: Invalid value %s for --interval. Must be integer > 0\n", interval_str);
+                return -1;
+            }
+        }
+    }
+    interval *= 1000; /*Convert input milliseconds to microseconds */
+
     /* Construct specfile path for given packet type */
     specfile_dir = get_arg_val("--spec-dir", argv, argc);
     if (specfile_dir == NULL) {
@@ -87,6 +106,7 @@ int main(int argc, char**argv)
     } else {
         for (int i=0; i<num_packets; i++) {
             send_packet(specfile_path);
+            usleep((useconds_t)interval);
         }
     }
     return 0;
