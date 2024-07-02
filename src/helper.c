@@ -8,6 +8,7 @@
 #include <ctype.h>
 #include <stdbool.h>
 #include <sys/file.h>
+#include <sys/socket.h>
 #include <stdint.h>
 
 #include "helper.h"
@@ -52,16 +53,45 @@ uint16_t packet_checksum(unsigned char *buffer, int num_bytes)
     return (uint16_t)~sum;
 }
 
+int transmit_packet(unsigned char* packet, int packet_size, char* dest_addr_str)
+{
+
+    int sockfd;
+    struct sockaddr_in dest_addr;
+
+    /* Socket setup */
+    sockfd = socket(AF_INET, SOCK_RAW, IPPROTO_RAW);
+    if (sockfd == -1) {
+        printf("Error: failed to open socket\n");
+        return -1;
+    }
+
+    dest_addr.sin_family = AF_INET;
+    dest_addr.sin_port = 0;
+    dest_addr.sin_addr.s_addr = inet_addr(dest_addr_str);
+
+    if (sendto(sockfd, packet, packet_size, 0, (struct sockaddr *)&dest_addr, sizeof(dest_addr)) < 0) {
+        printf("Error: failed to send packet\n");
+        return -1;
+        close(sockfd);
+    }
+
+    close(sockfd);
+
+    return 0;
+}
+
 /* Returns len of ip packet */
-int ip_encapsulate(char* buffer, char* payload, int len_payload, char *src_addr, char* dest_addr) {   
+int ip_encapsulate(unsigned char* buffer, unsigned char* payload, int len_payload, char *src_addr, char* dest_addr) {   
     
     struct ip *ip_header = (struct ip*) buffer;
 
     /* Set all header values */
     ip_header->ip_v = IPVERSION;
-    ip_header->ip_hl = 5;
+    ip_header->ip_hl = (sizeof (struct ip)) >> 2;
     ip_header->ip_tos = 0;
     ip_header->ip_len = sizeof(struct ip) + len_payload + 1;
+    ip_header->ip_id = htons(54321);
     ip_header->ip_off = 0;
     ip_header->ip_ttl = 255;
     ip_header->ip_sum = 0;
@@ -77,6 +107,63 @@ int ip_encapsulate(char* buffer, char* payload, int len_payload, char *src_addr,
     return ip_header->ip_len;
 
 }
+
+int create_ip_packet_payload(
+        unsigned char *ip_payload_buffer,
+        unsigned char *serial_header, 
+        int serial_header_size, 
+        unsigned char *serial_data,
+        int serial_data_size)
+{
+    /* Write all buffers into payload */
+    int written_bytes = 0;
+    if (serial_header != NULL) {
+        memcpy(ip_payload_buffer, serial_header, serial_header_size);
+        written_bytes += serial_header_size;
+    }
+    if (serial_data != NULL) {
+        memcpy(ip_payload_buffer + written_bytes, serial_data, serial_data_size);
+        written_bytes += serial_data_size;
+    }
+
+    return written_bytes;
+}
+
+int send_ip_packet(unsigned char *serial_header, int serial_header_size, unsigned char *serial_data, int serial_data_size)
+{
+    
+    unsigned char* payload = NULL;
+    int payload_size = 0;
+    unsigned char *ip_buffer = NULL;
+    int ip_buffer_size = 0;
+    int ip_packet_size = 0;
+
+
+    payload = (unsigned char *)calloc(sizeof(unsigned char), serial_header_size + serial_data_size);
+    if (payload == NULL) {
+        printf("Error: failed to allocate ip payload\n");
+        return -1;
+    }
+    payload_size = create_ip_packet_payload(payload, serial_header, serial_header_size, serial_data, serial_data_size);
+
+    ip_buffer_size = sizeof(struct ip) + payload_size;
+    ip_buffer = (unsigned char *)calloc(sizeof(unsigned char), ip_buffer_size);
+    if (ip_buffer == NULL) {
+        printf("Error: failed to allocate ip buffer\n");
+        return -1;
+    }
+    
+    ip_packet_size = ip_encapsulate(ip_buffer, payload, payload_size, "127.0.0.1", "127.0.0.1");
+    transmit_packet(ip_buffer, ip_packet_size, "127.0.0.1");
+
+    printf("FINAL\n");
+    print_binary(ip_buffer, ip_packet_size);
+    printf("\n");
+    print_hex(ip_buffer, ip_packet_size);
+
+    return 0;
+}
+
 
 void remove_newline(char *str)
 {
@@ -168,14 +255,27 @@ int read_file_contents(char *filepath, char **output_buffer)
 void print_binary(unsigned char *buffer, int len)
 {
     unsigned char c;
+    printf(" ");
     for (int i = 0; i < len; ++i) {
         c = buffer[i];
         for (int j = 7; j >= 0; --j) {
             printf("%d", (c >> j) & 1);
         }
+        if ((i + 1)%4 == 0) {
+            printf("\n");
+        }
         printf(" ");
     }
     printf("\n");
+}
+
+void print_hex(unsigned char *buffer, int len)
+{
+    for (int i = 0; i < len; ++i) {
+        printf("%02x ", buffer[i]);
+        if ((i + 1) % 16 == 0)
+            printf("\n");
+    }
 }
 
 int convert_hex_to_bytes(char *hex_buffer, unsigned char *byte_array, int byte_array_len) {
@@ -190,6 +290,7 @@ int get_checksum_offset(struct packet_attr *packet_attrs, int num_attrs)
 
     int offset = 0;
     struct packet_attr curr_attr;
+    bool checksum_found = false;
     for (int i=0; i<num_attrs; i++) {
 
         curr_attr = packet_attrs[i];
@@ -198,6 +299,7 @@ int get_checksum_offset(struct packet_attr *packet_attrs, int num_attrs)
                 printf("Error: invalid checksum length of %d, auto compute of checksum is only supported for checksums of len 2\n", curr_attr.len);
                 return -1;
             }
+            checksum_found = true;
             break;
         }
 
@@ -208,6 +310,10 @@ int get_checksum_offset(struct packet_attr *packet_attrs, int num_attrs)
         } else {
             offset += curr_attr.len;
         }
+    }
+    if (!checksum_found) {
+        printf("Warning: checksum not found, continuing with default value\n");
+        return -1;
     }
     return offset;
 }
@@ -313,6 +419,7 @@ int serialize_packet_header(struct packet_attr *packet_attrs, int num_attrs, uns
     }
     return written_bytes;
 }
+
 
 
 int load_packet_data(char *spec_content, char** input_buffer) {

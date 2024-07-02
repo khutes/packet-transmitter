@@ -15,7 +15,7 @@ struct packet_attr
     int num_children;
 };
 
-int ip_encapsulate (char *buffer, char* payload, int len_payload, char* src_addr, char* dest_addr);
+//int ip_encapsulate (char *buffer, char* payload, int len_payload, char* src_addr, char* dest_addr);
 int load_packet (char *spec_content, struct packet_attr **input_attr_array, int *header_size);
 int load_packet_pseudo_header (char *spec_content, struct packet_attr **input_attr_array, int *header_size);
 int load_packet_data(char *spec_content, char **input_buffer);
@@ -34,6 +34,8 @@ int compute_and_set_checksum(
         unsigned char* serial_data,
         int serial_data_size
 );
+int send_ip_packet(unsigned char *serial_header, int serial_header_size, unsigned char *serial_data, int serial_data_size);
 
 /* Debug functions */
 void print_binary(unsigned char *buffer, int len);
+void print_hex(unsigned char *buffer, int len);

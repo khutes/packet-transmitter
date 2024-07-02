@@ -44,11 +44,11 @@ int main(int argc, char**argv)
     char specfile_path[MAX_SPECFILE_PATH_LEN];
     char *specfile_content;
 
-    char ip_packet[PACKET_SIZE];
-    int len_ip_packet;
+    //char ip_packet[PACKET_SIZE];
+    //int len_ip_packet;
 
-    int sockfd;
-    struct sockaddr_in dest_addr;
+    //int sockfd;
+    //struct sockaddr_in dest_addr;
 
     struct packet_attr *packet_attrs = NULL;
     int num_attrs = 0;
@@ -159,15 +159,19 @@ int main(int argc, char**argv)
     /* Compute and set the checksum */
     compute_and_set_checksum(packet_attrs, num_attrs, serial_header, serial_header_size, serial_pseudo_header, serial_pseudo_size, serial_packet_data, packet_payload_size);
 
+    send_ip_packet(serial_header, serial_header_size, serial_packet_data, packet_payload_size);
+
     printf("HERE\n");
 
     /* Socket setup */
+    /*
     sockfd = socket(AF_INET, SOCK_RAW, IPPROTO_RAW);
     if (sockfd == -1) {
         printf("Error opening socket\n");
         return -1;
     }
 
+    
     dest_addr.sin_family = AF_INET;
     dest_addr.sin_port = 0;
     dest_addr.sin_addr.s_addr = inet_addr(DEFAULT_DEST_IP);
@@ -178,12 +182,14 @@ int main(int argc, char**argv)
         return -1;
     }
 
+    
     if (sendto(sockfd, ip_packet, len_ip_packet, 0, (struct sockaddr *)&dest_addr, sizeof(dest_addr)) < 0)
     {
         printf("Error: send failed\n");
     }
 
     close(sockfd);
+    */
 
     return 0;
 }
