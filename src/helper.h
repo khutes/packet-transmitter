@@ -23,7 +23,17 @@ void print_all_packet_attrs(struct packet_attr *attr_array, int num_attrs);
 int read_file_contents(char *filepath, char **output_buffer);
 int serialize_packet_header(struct packet_attr *packet_attrs, int num_attrs, unsigned char *serialized_header, int max_header_size);
 int serialize_packet_pseudo_header(struct packet_attr *packet_attrs, int num_attrs, unsigned char *serialized_header, int max_header_size, int len_overwrite);
-
+void serialize_packet_data(char *buffer, unsigned char*serial_buffer, int len_serial_buffer);
+int compute_and_set_checksum(
+        struct packet_attr *packet_attrs,
+        int num_attrs,
+        unsigned char *serial_header,
+        int serial_header_size,
+        unsigned char* serial_pseudo,
+        int serial_pseudo_size,
+        unsigned char* serial_data,
+        int serial_data_size
+);
 
 /* Debug functions */
 void print_binary(unsigned char *buffer, int len);

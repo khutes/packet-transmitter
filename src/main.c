@@ -61,7 +61,10 @@ int main(int argc, char**argv)
     int packet_payload_size = 0;
 
     unsigned char *serial_header = NULL;
+    int serial_header_size = 0;
     unsigned char *serial_pseudo_header = NULL;
+    int serial_pseudo_size = 0;
+    unsigned char *serial_packet_data = NULL;
 
     printf("Starting packet transmitter\n");
     printf("argc: %d\n", argc);
@@ -132,15 +135,15 @@ int main(int argc, char**argv)
 
     /* Get payload */
     serial_header = (unsigned char *)calloc(sizeof(unsigned char), max_header_size);
-    int n = serialize_packet_header(packet_attrs, num_attrs, serial_header, max_header_size);
-    printf("written_bytes: %d\n", n);
-    print_binary(serial_header, n);
+    serial_header_size = serialize_packet_header(packet_attrs, num_attrs, serial_header, max_header_size);
+    printf("written_bytes: %d\n", serial_header_size);
+    print_binary(serial_header, serial_header_size);
 
     /* Serialize pseudo header */
     serial_pseudo_header = (unsigned char *)calloc(sizeof(unsigned char), max_header_size);
-    n = serialize_packet_pseudo_header(pseudo_header_packet_attrs, pseudo_header_num_attrs, serial_pseudo_header, max_pseudo_header_size, n);
-    printf("written_bytes PS: %d\n", n);
-    print_binary(serial_pseudo_header, n);
+    serial_pseudo_size = serialize_packet_pseudo_header(pseudo_header_packet_attrs, pseudo_header_num_attrs, serial_pseudo_header, max_pseudo_header_size, serial_header_size);
+    printf("written_bytes PS: %d\n", serial_pseudo_size);
+    print_binary(serial_pseudo_header, serial_pseudo_size);
 
 
 
@@ -149,6 +152,13 @@ int main(int argc, char**argv)
     print_all_packet_attrs(pseudo_header_packet_attrs, pseudo_header_num_attrs);     
    
     packet_payload_size = load_packet_data(specfile_content, &packet_payload);
+    serial_packet_data = (unsigned char *)calloc(sizeof(unsigned char), packet_payload_size);
+    serialize_packet_data(packet_payload, serial_packet_data, packet_payload_size);
+    print_binary(serial_packet_data, packet_payload_size);
+
+    /* Compute and set the checksum */
+    compute_and_set_checksum(packet_attrs, num_attrs, serial_header, serial_header_size, serial_pseudo_header, serial_pseudo_size, serial_packet_data, packet_payload_size);
+
     printf("HERE\n");
 
     /* Socket setup */

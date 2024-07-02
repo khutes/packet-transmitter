@@ -8,6 +8,7 @@
 #include <ctype.h>
 #include <stdbool.h>
 #include <sys/file.h>
+#include <stdint.h>
 
 #include "helper.h"
 
@@ -27,6 +28,28 @@ unsigned short checksum(void *b, int len) {
     result = ~sum;
 
     return result;
+}
+
+uint16_t packet_checksum(unsigned char *buffer, int num_bytes)
+{
+    uint32_t sum = 0;
+
+    while (num_bytes > 1) {
+        sum += ((uint16_t)(*buffer << 8) | *(buffer + 1));
+        buffer += 2;
+        num_bytes -= 2;
+    }
+
+    /* Add final byte */
+    if (num_bytes > 0) {
+        sum += (uint16_t)(*buffer << 8);
+    }
+
+    while (sum >> 16) {
+        sum = (sum & 0xFFFF) + (sum >> 16);
+    }
+
+    return (uint16_t)~sum;
 }
 
 /* Returns len of ip packet */
@@ -156,12 +179,89 @@ void print_binary(unsigned char *buffer, int len)
 }
 
 int convert_hex_to_bytes(char *hex_buffer, unsigned char *byte_array, int byte_array_len) {
-
     for (int i=0; i<byte_array_len; i++) {
         sscanf(hex_buffer + (2 * i), "%2hhx", &byte_array[i]);
     }
+    return 0;
+}
+
+int get_checksum_offset(struct packet_attr *packet_attrs, int num_attrs)
+{
+
+    int offset = 0;
+    struct packet_attr curr_attr;
+    for (int i=0; i<num_attrs; i++) {
+
+        curr_attr = packet_attrs[i];
+        if (curr_attr.is_checksum) {
+            if (curr_attr.len != 2) {
+                printf("Error: invalid checksum length of %d, auto compute of checksum is only supported for checksums of len 2\n", curr_attr.len);
+                return -1;
+            }
+            break;
+        }
+
+        if (curr_attr.len == -1) {
+            for (int child_idx=0; child_idx<curr_attr.num_children; child_idx++) {
+                offset += curr_attr.child_attrs[child_idx].len;
+            }    
+        } else {
+            offset += curr_attr.len;
+        }
+    }
+    return offset;
+}
+
+/* Computes the checksum for the header and sets it
+ * Requires that the checksum have a length of 2
+ */
+int compute_and_set_checksum(
+        struct packet_attr *packet_attrs, 
+        int num_attrs, 
+        unsigned char* serial_header, 
+        int serial_header_size, 
+        unsigned char* serial_pseudo, 
+        int serial_pseudo_size, 
+        unsigned char* serial_data, 
+        int serial_data_size)
+{
+
+    uint32_t checksum = 0;
+    uint16_t sum16 = 0;
+    int offset = 0;
+    
+    if (serial_pseudo != NULL) {
+        checksum += packet_checksum(serial_pseudo, serial_pseudo_size);
+    }
+    if (serial_header != NULL) {
+        checksum += packet_checksum(serial_header, serial_header_size);
+    }
+    if (serial_data != NULL) {
+        checksum += packet_checksum(serial_data, serial_data_size);
+    }
+
+    while (checksum >> 16) {
+        checksum = (checksum & 0xFFFF) + (checksum >> 16);
+    }
+    sum16 = (uint16_t)~checksum;
+
+    offset = get_checksum_offset(packet_attrs, num_attrs);
+    if (offset == -1) {
+        printf("Error: Unable to auto compute checksum\n");
+        return -1;
+    }
+    serial_header[offset] = (uint8_t)(sum16 >> 8);
+    serial_header[offset + 1] = (uint8_t)(sum16);
 
     return 0;
+
+}
+
+void serialize_packet_data(char *buffer, unsigned char*serial_buffer, int len_serial_buffer)
+{
+    for (int i=0; i<len_serial_buffer; i++) {
+        serial_buffer[i] = (unsigned char)buffer[i];
+    }
 }
 
 int serialize_packet_pseudo_header(struct packet_attr *packet_attrs, int num_attrs, unsigned char *serialized_header, int max_header_size, int len_overwrite) {
