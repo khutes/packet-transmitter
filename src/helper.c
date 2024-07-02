@@ -137,6 +137,7 @@ int send_ip_packet(unsigned char *serial_header, int serial_header_size, unsigne
     unsigned char *ip_buffer = NULL;
     int ip_buffer_size = 0;
     int ip_packet_size = 0;
+    int err = 0;
 
 
     payload = (unsigned char *)calloc(sizeof(unsigned char), serial_header_size + serial_data_size);
@@ -154,14 +155,12 @@ int send_ip_packet(unsigned char *serial_header, int serial_header_size, unsigne
     }
     
     ip_packet_size = ip_encapsulate(ip_buffer, payload, payload_size, "127.0.0.1", "127.0.0.1");
-    transmit_packet(ip_buffer, ip_packet_size, "127.0.0.1");
-
-    printf("FINAL\n");
-    print_binary(ip_buffer, ip_packet_size);
-    printf("\n");
-    print_hex(ip_buffer, ip_packet_size);
-
-    return 0;
+    err = transmit_packet(ip_buffer, ip_packet_size, "127.0.0.1");
+    if (err < 0) {
+        printf("Error: failed to transmit packet\n");
+        return err;
+    }
+    return err;
 }
 
 
@@ -386,11 +385,9 @@ int serialize_packet_pseudo_header(struct packet_attr *packet_attrs, int num_att
 int serialize_packet_header(struct packet_attr *packet_attrs, int num_attrs, unsigned char *serialized_header, int max_header_size) {
 
     unsigned char *bytes = NULL;
-    unsigned char *full_packet = NULL;
     int written_bytes = 0;
     struct packet_attr curr_attr;
     struct packet_attr curr_child;
-    printf("NUM ATTRS: %d\n", num_attrs);
 
     for (int i=0; i< num_attrs; i++) {
 
@@ -402,16 +399,12 @@ int serialize_packet_header(struct packet_attr *packet_attrs, int num_attrs, uns
                 curr_child = curr_attr.child_attrs[j];
                 bytes = (unsigned char *)calloc(sizeof(unsigned char), curr_child.len);
                 convert_hex_to_bytes(curr_child.value, bytes, curr_child.len);
-                printf("(%d): %s -> ", curr_child.len, curr_child.value);
-                print_binary(bytes, curr_child.len);
                 memcpy(serialized_header + written_bytes, bytes, curr_child.len);
                 written_bytes +=  curr_child.len;
             }
         } else {
             bytes = (unsigned char *)calloc(sizeof(unsigned char), curr_attr.len);
             convert_hex_to_bytes(curr_attr.value, bytes, curr_attr.len);
-            printf("%s (%d): %s -> ", curr_attr.name, curr_attr.len, curr_attr.value);
-            print_binary(bytes, curr_attr.len);
             memcpy(serialized_header + written_bytes, bytes, curr_attr.len);
             written_bytes +=  curr_attr.len;
             free(bytes);
@@ -564,7 +557,6 @@ int load_packet(char *spec_content, struct packet_attr **input_attr_array, int *
             } else {
                 /* We got an attribute */
                 sscanf(line, attr_format_str, attr_array[i].name, &(attr_array[i].len));
-                //printf("name: %s\n", attr_array[i].name);
 
                 if (attr_array[i].name[0] == '$') {
                     attr_array[i].is_checksum = true;

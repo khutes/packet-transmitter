@@ -43,12 +43,6 @@ int main(int argc, char**argv)
     int interval;
 
     printf("Starting packet transmitter\n");
-    printf("argc: %d\n", argc);
-
-    for (int i=1; i<argc; i++) {
-        printf("argv[%d]: %s\n", i, argv[i]);
-    }
-
     /* Get all the required arguments */
     packet_type = get_arg_val("--packet-type", argv, argc);
     
@@ -88,6 +82,9 @@ int main(int argc, char**argv)
     }
     interval *= 1000; /*Convert input milliseconds to microseconds */
 
+    /* Get destination IP */
+
+
     /* Construct specfile path for given packet type */
     specfile_dir = get_arg_val("--spec-dir", argv, argc);
     if (specfile_dir == NULL) {
@@ -96,9 +93,6 @@ int main(int argc, char**argv)
 
     /* TODO: use snprintf */
     sprintf(specfile_path, "%s/%s", specfile_dir, packet_type);
-    printf("specfile_path: %s\n", specfile_path);
-    /* handle packet creation based on spec */
-
     if (num_packets == 0) {
         while (true) {
             send_packet(specfile_path);
