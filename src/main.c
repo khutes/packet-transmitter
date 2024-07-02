@@ -35,29 +35,9 @@ int main(int argc, char**argv)
 
     char *specfile_dir = NULL;
     char specfile_path[MAX_SPECFILE_PATH_LEN];
-    char *specfile_content;
 
-    //char ip_packet[PACKET_SIZE];
-    //int len_ip_packet;
-
-    //int sockfd;
-    //struct sockaddr_in dest_addr;
-
-    struct packet_attr *packet_attrs = NULL;
-    int num_attrs = 0;
-    int max_header_size = 0;
-    struct packet_attr *pseudo_header_packet_attrs = NULL;
-    int pseudo_header_num_attrs = 0;
-    int max_pseudo_header_size = 0;
-
-    char *packet_payload = NULL;
-    int packet_payload_size = 0;
-
-    unsigned char *serial_header = NULL;
-    int serial_header_size = 0;
-    unsigned char *serial_pseudo_header = NULL;
-    int serial_pseudo_size = 0;
-    unsigned char *serial_packet_data = NULL;
+    char *num_packets_str;
+    int num_packets = 0;
 
     printf("Starting packet transmitter\n");
     printf("argc: %d\n", argc);
@@ -74,6 +54,21 @@ int main(int argc, char**argv)
         return -1;
     }
 
+    num_packets_str = get_arg_val("--num-packets", argv, argc);
+    if (num_packets_str == NULL) {
+        num_packets = 0;
+    } else {
+        if (strcmp(num_packets_str, "0") == 0) {
+            num_packets = 0;
+        } else {
+            num_packets = atoi(num_packets_str);
+            if (num_packets == 0) {
+                printf("Error: %s is invalid value for --num-packets\n", num_packets_str);
+                return -1;
+            }
+        }
+    }
+
     /* Construct specfile path for given packet type */
     specfile_dir = get_arg_val("--spec-dir", argv, argc);
     if (specfile_dir == NULL) {
@@ -83,63 +78,16 @@ int main(int argc, char**argv)
     /* TODO: use snprintf */
     sprintf(specfile_path, "%s/%s", specfile_dir, packet_type);
     printf("specfile_path: %s\n", specfile_path);
-
-
-
-
-
-    printf("packet-type: %s\n", packet_type);
-
     /* handle packet creation based on spec */
-    
-    if (read_file_contents(specfile_path, &specfile_content) < 0) {
-        printf("Error: failed to read file content for %s\n", specfile_path);
-        return -1;
+
+    if (num_packets == 0) {
+        while (true) {
+            send_packet(specfile_path);
+        }
+    } else {
+        for (int i=0; i<num_packets; i++) {
+            send_packet(specfile_path);
+        }
     }
-    printf("SPC: %s\n", specfile_content);
-
-    
-    num_attrs = load_packet(specfile_content, &packet_attrs, &max_header_size);
-    if (num_attrs < 0) {
-        printf("Error: failed to load packet spec for file %s\n", "../specfiles/tcp");
-        return -1;
-    }
-    printf("DONE LOADING PACKET\n");
-    
-    /*PSEUDO HEADER */
-    pseudo_header_num_attrs = load_packet_pseudo_header(specfile_content, &pseudo_header_packet_attrs, &max_pseudo_header_size);
-    if (pseudo_header_num_attrs < 0) {
-        printf("Error: failed to load pseudo header spec for file %s\n", "../specfiles/tcp");
-        return -1;
-    }
-
-    /* Get payload */
-    serial_header = (unsigned char *)calloc(sizeof(unsigned char), max_header_size);
-    serial_header_size = serialize_packet_header(packet_attrs, num_attrs, serial_header, max_header_size);
-    printf("written_bytes: %d\n", serial_header_size);
-    print_binary(serial_header, serial_header_size);
-
-    /* Serialize pseudo header */
-    serial_pseudo_header = (unsigned char *)calloc(sizeof(unsigned char), max_header_size);
-    serial_pseudo_size = serialize_packet_pseudo_header(pseudo_header_packet_attrs, pseudo_header_num_attrs, serial_pseudo_header, max_pseudo_header_size, serial_header_size);
-    printf("written_bytes PS: %d\n", serial_pseudo_size);
-    print_binary(serial_pseudo_header, serial_pseudo_size);
-
-
-
-    /* Print all */
-    print_all_packet_attrs(packet_attrs, num_attrs);     
-    print_all_packet_attrs(pseudo_header_packet_attrs, pseudo_header_num_attrs);     
-   
-    packet_payload_size = load_packet_data(specfile_content, &packet_payload);
-    serial_packet_data = (unsigned char *)calloc(sizeof(unsigned char), packet_payload_size);
-    serialize_packet_data(packet_payload, serial_packet_data, packet_payload_size);
-    print_binary(serial_packet_data, packet_payload_size);
-
-    /* Compute and set the checksum */
-    compute_and_set_checksum(packet_attrs, num_attrs, serial_header, serial_header_size, serial_pseudo_header, serial_pseudo_size, serial_packet_data, packet_payload_size);
-
-    send_ip_packet(serial_header, serial_header_size, serial_packet_data, packet_payload_size);
-
     return 0;
 }

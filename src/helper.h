@@ -35,6 +35,7 @@ int compute_and_set_checksum(
         int serial_data_size
 );
 int send_ip_packet(unsigned char *serial_header, int serial_header_size, unsigned char *serial_data, int serial_data_size);
+int send_packet(char *specfile_path);
 
 /* Debug functions */
 void print_binary(unsigned char *buffer, int len);

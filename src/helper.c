@@ -671,6 +671,93 @@ int load_packet(char *spec_content, struct packet_attr **input_attr_array, int *
 
 }
 
+int send_packet(char *specfile_path)
+{
+
+    int err = 0;
+    char *specfile_content = NULL;
+
+    struct packet_attr *packet_attrs = NULL;
+    int num_attrs = 0;
+    struct packet_attr *pseudo_attrs = NULL;
+    int num_pseudo_attrs = 0;
+
+    char *packet_payload = NULL;
+    int packet_payload_size = 0;
+
+    int max_header_size = 0;
+    int max_pseudo_size = 0;
+
+    unsigned char *serial_header = NULL;
+    int serial_header_size = 0;
+    unsigned char *serial_pseudo_header = NULL;
+    int serial_pseudo_size = 0;
+    unsigned char *serial_packet_data = NULL;
+
+    if (read_file_contents(specfile_path, &specfile_content) < 0) {
+        printf("Error: failed to read file content for %s\n", specfile_path);
+        return -1;
+    }
+
+    num_attrs = load_packet(specfile_content, &packet_attrs, &max_header_size);
+    if (num_attrs < 0) {
+        printf("Error: failed to load packet spec for file %s\n", "../specfiles/tcp");
+        return -1;
+    }
+
+    /*PSEUDO HEADER */
+    num_pseudo_attrs = load_packet_pseudo_header(specfile_content, &pseudo_attrs, &max_pseudo_size);
+    if (num_pseudo_attrs < 0) {
+        printf("Error: failed to load pseudo header spec for file %s\n", "../specfiles/tcp");
+        return -1;
+    }
+
+    /* Packet Data */
+    packet_payload_size = load_packet_data(specfile_content, &packet_payload);
+
+    /* Serialize Pseud Header, Header, and Data */
+    serial_header = (unsigned char *)calloc(sizeof(unsigned char), max_header_size);
+    serial_header_size = serialize_packet_header(packet_attrs, num_attrs, serial_header, max_header_size);
+    if (serial_header_size < 0) {
+        printf("Error: unable to serialize header\n");
+        return -1;
+    }
+
+    if (num_pseudo_attrs > 0) {
+        serial_pseudo_header = (unsigned char *)calloc(sizeof(unsigned char), max_header_size);
+        serial_pseudo_size = serialize_packet_pseudo_header(pseudo_attrs, num_pseudo_attrs, serial_pseudo_header, max_pseudo_size, serial_header_size);
+        if (serial_pseudo_size < 0) {
+            printf("Error: unable to serialize pseudo header\n");
+            return -1;
+        }
+    }
+
+    serial_packet_data = (unsigned char *)calloc(sizeof(unsigned char), packet_payload_size);
+    serialize_packet_data(packet_payload, serial_packet_data, packet_payload_size);
+
+    err = compute_and_set_checksum(packet_attrs, num_attrs, serial_header, serial_header_size, serial_pseudo_header, serial_pseudo_size, serial_packet_data, packet_payload_size);
+    if (err < 0) {
+        printf("Warning: checksum failed to compute\n");
+    }
+
+    err = send_ip_packet(serial_header, serial_header_size, serial_packet_data, packet_payload_size);
+    if (err < 0) {
+        printf("Error: failed to send packet\n");
+        return err;
+    }
+
+    /* TODO: Ensure cleanup on errors change to caller need to free*/
+    free(packet_attrs);
+    free(pseudo_attrs);
+    free(packet_payload);
+    free(serial_header);
+    free(serial_pseudo_header);
+    free(serial_packet_data);
+
+    return 0;
+
+}
+
 
 
 
