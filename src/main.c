@@ -8,11 +8,6 @@
 
 #include "helper.h"
 
-#define DEFAULT_NETWORK_LAYER 3
-#define MIN_NETWORK_LAYER 1
-#define MAX_NETWORK_LAYER 3
-
-
 #define DEFAULT_DEST_IP "127.0.0.1"
 #define PACKET_SIZE 1024
 #define DEFAULT_SPECFILE_DIR "../specfiles"
@@ -37,8 +32,6 @@ char* get_arg_val(char* key, char**arg_list, int len)
 int main(int argc, char**argv) 
 {
     char* packet_type = NULL;
-    char* network_layer_str = NULL;
-    int network_layer = DEFAULT_NETWORK_LAYER;
 
     char *specfile_dir = NULL;
     char specfile_path[MAX_SPECFILE_PATH_LEN];
@@ -95,19 +88,6 @@ int main(int argc, char**argv)
 
 
 
-    /*Get optional non packet attribute arguments */
-    network_layer_str = get_arg_val("--network-layer", argv, argc);
-    if (network_layer_str != NULL) {
-        network_layer = atoi(network_layer_str);
-        if (network_layer < MIN_NETWORK_LAYER || network_layer > MAX_NETWORK_LAYER) {
-            printf("Error: %s is not a valid network layer\n", network_layer_str);
-            return -1;
-        }
-    }
-    printf("network_layer: %d\n", network_layer);
-
-
-
     printf("packet-type: %s\n", packet_type);
 
     /* handle packet creation based on spec */
@@ -160,36 +140,6 @@ int main(int argc, char**argv)
     compute_and_set_checksum(packet_attrs, num_attrs, serial_header, serial_header_size, serial_pseudo_header, serial_pseudo_size, serial_packet_data, packet_payload_size);
 
     send_ip_packet(serial_header, serial_header_size, serial_packet_data, packet_payload_size);
-
-    printf("HERE\n");
-
-    /* Socket setup */
-    /*
-    sockfd = socket(AF_INET, SOCK_RAW, IPPROTO_RAW);
-    if (sockfd == -1) {
-        printf("Error opening socket\n");
-        return -1;
-    }
-
-    
-    dest_addr.sin_family = AF_INET;
-    dest_addr.sin_port = 0;
-    dest_addr.sin_addr.s_addr = inet_addr(DEFAULT_DEST_IP);
-
-    len_ip_packet = ip_encapsulate(ip_packet, "HELLO", strlen("HELLO"), "127.0.0.1", "127.0.0.1");
-    if (len_ip_packet < 0) {
-        printf("Error encapsulating ip packet\n");
-        return -1;
-    }
-
-    
-    if (sendto(sockfd, ip_packet, len_ip_packet, 0, (struct sockaddr *)&dest_addr, sizeof(dest_addr)) < 0)
-    {
-        printf("Error: send failed\n");
-    }
-
-    close(sockfd);
-    */
 
     return 0;
 }
