@@ -9,8 +9,6 @@
 
 #include "helper.h"
 
-#define DEFAULT_DEST_IP "127.0.0.1"
-#define PACKET_SIZE 1024
 #define DEFAULT_SPECFILE_DIR "../specfiles"
 #define MAX_SPECFILE_PATH_LEN 1024
 
