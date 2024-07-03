@@ -18,7 +18,7 @@ Build system is currently very basic. Binary named `pt` will be created in src d
 `./pt --packet-type tcp --spec-dir ../specfiles --dest-ip 127.0.0.1 --src-ip 127.0.0.1`    
 The above command will continuously send packets based on the specfile located at `../specfiles/tcp` to `127.0.0.1` from `127.0.0.1`
 
-Additional options
+##### Additional options
 `--interval <milliseconds>` number of milliseconds to wait between packet sends, defautl value of 0 continuously sends packets
 `--num-packets <num>` number of packets to send, default value of 0 sends packets until program is stopped
 
