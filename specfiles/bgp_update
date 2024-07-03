@@ -1,0 +1,13 @@
+60
+withdrawn-routes-length 2 0x0002
+withdrawn-routes -1
+    2 0xFFFF
+    2 0x5555
+total-path-attribute-length 2 0x0001
+path-attributes -1
+    2 0x0000
+    4 0x55555555
+network-layer-reachability-information -1
+    1 0x00
+    4 0xFFFF
+
