@@ -1,0 +1,20 @@
+60
+source-port 2 0x0050
+destination-port 2 0x0050
+sequence-number 4 0x00000000
+acknowledgement-number 4 0x00000000
+data-offset-reserved-control-bits 2 0x5002
+window-size 2  0x16D0
+$checksum 2 0x0000
+urgent-pointer 2 0x0000
+options -1
+padding -1
+PSEUDOHEADER
+55
+source-address 4 0x7F000001
+destination-address 4 0x7F000001
+reserved 1 0x00
+protocol 1 0x00
+^tcp-length 2 0x0100
+DATA
+hello
