@@ -26,13 +26,13 @@ The above command will continuously send packets based on the specfile located a
 The specfiles need to follow a specific format for the packet to be correctly constructed. See example tcp specfile
 
 Specfiles can contain 3 sections: 
-#### Packet header 
+#### 1. Packet header 
 Is always the first section of the spec file. First line must contain the max size of the header in octets. Following lines contain attributes that make up the header.
 
-#### Pseudo header
+#### 2. Pseudo header
 Always begins with `PSUEDOHEADER`. Not required. Must come after the packet header. Must begin with max size of the pseudo header in octets. If the pseudoheader exists it will be used in the auto calculation of the packet checksum. Attributes follow the same format as those in the packet header.
 
-#### DATA
+#### 3. DATA
 Always begins with `DATA`. Not required. If it exists it will contain the packet payload. Size does not need to be provided. Must be the last section.
 
 #### Attribute format
