@@ -8,10 +8,10 @@ Encapsulate serialized packet in ip datagram.
 Send IP datagram containing constructed packet payload to a specified IPv4 address.
 
 ## Build
-      ```
-      cd src
-      make build
-      ``` 
+```
+cd src
+make build
+``` 
 Build system is currently very basic. Binary named `pt` will be created in src directory. 
 
 ## Basic Use
