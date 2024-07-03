@@ -90,24 +90,6 @@ Notes on specfile example:
 - Sends on top of IP datagram. Sending/encapsulating in other layers currently not supported.
 - Checksum length must be 2 octets for auto calculation.
 
-```
-packet-size
-attr1-name
-
-
-      +-----------------------------------------------------+
-      |   Withdrawn Routes Length (2 octets)                |
-      +-----------------------------------------------------+
-      |   Withdrawn Routes (variable)                       |
-      +-----------------------------------------------------+
-      |   Total Path Attribute Length (2 octets)            |
-      +-----------------------------------------------------+
-      |   Path Attributes (variable)                        |
-      +-----------------------------------------------------+
-      |   Network Layer Reachability Information (variable) |
-      +-----------------------------------------------------+
-```
-
 ## Additional work
 - [ ] Allow auto setting of src IP
 - [ ] Check for memory leaks. Refactor a few functions to be allocator must also free.
