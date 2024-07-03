@@ -28,6 +28,19 @@ char* get_arg_val(char* key, char**arg_list, int len)
 
 }
 
+void print_help_string(void)
+{
+    char *help_string = " Packet Transmitter options\n"
+        "--packet-type:         (required) The name of the spec file which will be chosen in the set specfile directory\n"
+        "--spec-dir:            The directory which contains the specfile. Default value is [../specfiles]\n"
+        "--num-packets:         Number of packets which will be sent. Default value of 0 results in packets being sent forever\n"
+        "--interval:            Milliseconds between packet sends. Default value of 0 results in no wait between packet sends\n"
+        "--dest-ip:             (required) Destination IP to send the packets to. IPv4 only\n"
+        "--src-ip:              (required) Source IP to send packets from. IPv4 only\n";
+
+    printf("%s\n", help_string);
+}
+
 int main(int argc, char**argv) 
 {
     char* packet_type = NULL;
@@ -46,10 +59,14 @@ int main(int argc, char**argv)
     char *src_ip_str = NULL;
     in_addr_t src_ip = INADDR_NONE;
 
-    printf("Starting packet transmitter\n");
+
+    if (get_arg_val("--help", argv, argc) != NULL) {
+        print_help_string();
+        return 0;
+    }
+
     /* Get all the required arguments */
     packet_type = get_arg_val("--packet-type", argv, argc);
-    
     if (packet_type == NULL) {
         printf("Error: Packet type not specified\n");
         return -1;
@@ -115,6 +132,7 @@ int main(int argc, char**argv)
     }
 
     /* TODO: use snprintf */
+    printf("Starting packet transmitter\n");
     sprintf(specfile_path, "%s/%s", specfile_dir, packet_type);
     if (num_packets == 0) {
         while (true) {
