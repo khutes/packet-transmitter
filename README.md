@@ -46,7 +46,7 @@ If the attribute has a variable size it must follow this format followed by each
 ```
 If a variable length attribute is specified but no children exist the attribute will be ignored.
 
-#### Special Character
+#### Special Characters
 `$` denotes the checksum whose value should be replaced with the auto calculated checksum.     
 `^` denotes the pseudo header value which should be replaced with the real length of the packet header. The real length of the packet header is the sum of all attribute and child attribute lengths, NOT the max packer header length.     
 
