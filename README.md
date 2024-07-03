@@ -15,7 +15,7 @@ Send IP datagram containing constructed packet payload to a specified IPv4 addre
 Build system is currently very basic. Binary named `pt` will be created in src directory. 
 
 ## Basic Use
-`./pt --packet-type tcp --spec-dir ../specfiles --dest-ip 127.0.0.1 --src-ip 127.0.0.1`
+`./pt --packet-type tcp --spec-dir ../specfiles --dest-ip 127.0.0.1 --src-ip 127.0.0.1`    
 The above command will continuously send packets based on the specfile located at `../specfiles/tcp` to `127.0.0.1` from `127.0.0.1`
 
 Additional options
