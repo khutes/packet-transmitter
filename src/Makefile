@@ -3,4 +3,4 @@
 
 
 build:
-	gcc helper.c main.c -o pt -Wall
+	gcc -g helper.c main.c -o pt -Wall
