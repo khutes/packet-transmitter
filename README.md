@@ -113,7 +113,7 @@ attr1-name
 - [ ] Check for memory leaks. Refactor a few functions to be allocator must also free.
 - [ ] Allow encapsulation in TCP/UDP instead of IP
 - [ ] Allow for variable size checksum, only 16bit checksum currently supported
-- [ ] Optimize send of packet. Currently read specfile and construct packet everytime. Optimize to only update packet when specfile changes.
+- [x] Optimize send of packet. Currently read specfile and construct packet everytime. Optimize to only update packet when specfile changes.
 - [ ] Add testing, unittests
 - [ ] Allow user to specify specfile sections in any order.
 - [ ] Support IPv6
