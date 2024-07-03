@@ -117,6 +117,8 @@ attr1-name
 - [ ] Add testing, unittests
 - [ ] Allow user to specify specfile sections in any order.
 - [ ] Support IPv6
+- [ ] Descrease verbosity of non-critical errors. Allow for setting of verbosity
+- [ ] Add debug print function
 
 
 
