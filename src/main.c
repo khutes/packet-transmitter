@@ -36,7 +36,8 @@ void print_help_string(void)
         "--num-packets:         Number of packets which will be sent. Default value of 0 results in packets being sent forever\n"
         "--interval:            Milliseconds between packet sends. Default value of 0 results in no wait between packet sends\n"
         "--dest-ip:             (required) Destination IP to send the packets to. IPv4 only\n"
-        "--src-ip:              (required) Source IP to send packets from. IPv4 only\n";
+        "--src-ip:              (required) Source IP to send packets from. IPv4 only\n"
+        "--help:                See this help string\n";
 
     printf("%s\n", help_string);
 }
