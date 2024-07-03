@@ -53,7 +53,7 @@ uint16_t packet_checksum(unsigned char *buffer, int num_bytes)
     return (uint16_t)~sum;
 }
 
-int transmit_packet(unsigned char* packet, int packet_size, char* dest_addr_str)
+int transmit_packet(unsigned char* packet, int packet_size, in_addr_t dest_addr_in)
 {
 
     int sockfd;
@@ -68,7 +68,7 @@ int transmit_packet(unsigned char* packet, int packet_size, char* dest_addr_str)
 
     dest_addr.sin_family = AF_INET;
     dest_addr.sin_port = 0;
-    dest_addr.sin_addr.s_addr = inet_addr(dest_addr_str);
+    dest_addr.sin_addr.s_addr = dest_addr_in;
 
     if (sendto(sockfd, packet, packet_size, 0, (struct sockaddr *)&dest_addr, sizeof(dest_addr)) < 0) {
         printf("Error: failed to send packet\n");
@@ -82,7 +82,7 @@ int transmit_packet(unsigned char* packet, int packet_size, char* dest_addr_str)
 }
 
 /* Returns len of ip packet */
-int ip_encapsulate(unsigned char* buffer, unsigned char* payload, int len_payload, char *src_addr, char* dest_addr) {   
+int ip_encapsulate(unsigned char* buffer, unsigned char* payload, int len_payload, in_addr_t dest_addr, in_addr_t src_addr) {   
     
     struct ip *ip_header = (struct ip*) buffer;
 
@@ -96,8 +96,8 @@ int ip_encapsulate(unsigned char* buffer, unsigned char* payload, int len_payloa
     ip_header->ip_ttl = 255;
     ip_header->ip_sum = 0;
     ip_header->ip_p = IPPROTO_RAW;
-    ip_header->ip_src.s_addr = inet_addr(src_addr);
-    ip_header->ip_dst.s_addr = inet_addr(dest_addr);
+    ip_header->ip_src.s_addr = src_addr;
+    ip_header->ip_dst.s_addr = dest_addr;
 
     ip_header->ip_sum = checksum((unsigned short *) buffer, ip_header->ip_len);
 
@@ -129,7 +129,7 @@ int create_ip_packet_payload(
     return written_bytes;
 }
 
-int send_ip_packet(unsigned char *serial_header, int serial_header_size, unsigned char *serial_data, int serial_data_size)
+int send_ip_packet(unsigned char *serial_header, int serial_header_size, unsigned char *serial_data, int serial_data_size, in_addr_t dest_ip, in_addr_t src_ip)
 {
     
     unsigned char* payload = NULL;
@@ -154,8 +154,8 @@ int send_ip_packet(unsigned char *serial_header, int serial_header_size, unsigne
         return -1;
     }
     
-    ip_packet_size = ip_encapsulate(ip_buffer, payload, payload_size, "127.0.0.1", "127.0.0.1");
-    err = transmit_packet(ip_buffer, ip_packet_size, "127.0.0.1");
+    ip_packet_size = ip_encapsulate(ip_buffer, payload, payload_size, dest_ip, src_ip);
+    err = transmit_packet(ip_buffer, ip_packet_size, dest_ip);
     if (err < 0) {
         printf("Error: failed to transmit packet\n");
         return err;
@@ -663,7 +663,7 @@ int load_packet(char *spec_content, struct packet_attr **input_attr_array, int *
 
 }
 
-int send_packet(char *specfile_path)
+int send_packet(char *specfile_path, in_addr_t dest_ip, in_addr_t src_ip)
 {
 
     int err = 0;
@@ -732,7 +732,7 @@ int send_packet(char *specfile_path)
         printf("Warning: checksum failed to compute\n");
     }
 
-    err = send_ip_packet(serial_header, serial_header_size, serial_packet_data, packet_payload_size);
+    err = send_ip_packet(serial_header, serial_header_size, serial_packet_data, packet_payload_size, dest_ip, src_ip);
     if (err < 0) {
         printf("Error: failed to send packet\n");
         return err;

@@ -5,6 +5,7 @@
 #include <unistd.h>
 #include <arpa/inet.h>
 #include <netinet/ip.h>
+#include <netinet/in.h>
 
 #include "helper.h"
 
@@ -41,6 +42,11 @@ int main(int argc, char**argv)
 
     char *interval_str = NULL;
     int interval;
+
+    char *dest_ip_str = NULL;
+    in_addr_t dest_ip = INADDR_NONE;
+    char *src_ip_str = NULL;
+    in_addr_t src_ip = INADDR_NONE;
 
     printf("Starting packet transmitter\n");
     /* Get all the required arguments */
@@ -83,7 +89,26 @@ int main(int argc, char**argv)
     interval *= 1000; /*Convert input milliseconds to microseconds */
 
     /* Get destination IP */
+    dest_ip_str = get_arg_val("--dest-ip", argv, argc);
+    if (dest_ip_str == NULL) {
+        printf("Error: Destination IP address not set\n");
+        return -1;
+    }
+    if ((dest_ip = inet_addr(dest_ip_str)) == INADDR_NONE) {
+        printf("Error: invalid destination IP address %s\n", dest_ip_str);
+        return -1;
+    }
 
+    /* Get src IP */
+    src_ip_str = get_arg_val("--src-ip", argv, argc);
+    if (src_ip_str == NULL) {
+        printf("Error: Source IP address not set\n");
+        return -1;
+    }
+    if ((src_ip = inet_addr(src_ip_str)) == INADDR_NONE) {
+        printf("Error: Invalid Source IP address %s\n", src_ip_str);
+        return -1;
+    }
 
     /* Construct specfile path for given packet type */
     specfile_dir = get_arg_val("--spec-dir", argv, argc);
@@ -95,11 +120,11 @@ int main(int argc, char**argv)
     sprintf(specfile_path, "%s/%s", specfile_dir, packet_type);
     if (num_packets == 0) {
         while (true) {
-            send_packet(specfile_path);
+            send_packet(specfile_path, dest_ip, src_ip);
         }
     } else {
         for (int i=0; i<num_packets; i++) {
-            send_packet(specfile_path);
+            send_packet(specfile_path, dest_ip, src_ip);
             usleep((useconds_t)interval);
         }
     }

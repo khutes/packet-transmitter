@@ -34,8 +34,8 @@ int compute_and_set_checksum(
         unsigned char* serial_data,
         int serial_data_size
 );
-int send_ip_packet(unsigned char *serial_header, int serial_header_size, unsigned char *serial_data, int serial_data_size);
-int send_packet(char *specfile_path);
+int send_ip_packet(unsigned char *serial_header, int serial_header_size, unsigned char *serial_data, int serial_data_size, in_addr_t dest_ip, in_addr_t src_ip);
+int send_packet(char *specfile_path, in_addr_t dest_ip, in_addr_t src_ip);
 
 /* Debug functions */
 void print_binary(unsigned char *buffer, int len);
