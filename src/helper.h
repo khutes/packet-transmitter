@@ -1,5 +1,6 @@
 #include <stdbool.h>
-
+#include <sys/stat.h>
+#include <unistd.h>
 
 #define MAX_ATTRIBUTE_LINE_LEN 1024
 #define MAX_ATTRIBUTE_NAME_LEN 128
@@ -36,6 +37,9 @@ int compute_and_set_checksum(
 );
 int send_ip_packet(unsigned char *serial_header, int serial_header_size, unsigned char *serial_data, int serial_data_size, in_addr_t dest_ip, in_addr_t src_ip);
 int send_packet(char *specfile_path, in_addr_t dest_ip, in_addr_t src_ip);
+
+int file_modified(char *filepath, time_t *old_time);
+
 
 /* Debug functions */
 void print_binary(unsigned char *buffer, int len);

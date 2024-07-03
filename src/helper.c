@@ -9,9 +9,29 @@
 #include <stdbool.h>
 #include <sys/file.h>
 #include <sys/socket.h>
+#include <sys/stat.h>
 #include <stdint.h>
+#include <time.h>
 
 #include "helper.h"
+static time_t specfile_mod_time = 0;
+static char *saved_specfile_content = NULL;
+
+int file_modified(char *filepath, time_t *old_time)
+{
+    struct stat file_stat;
+    int err = 0;
+    err = stat(filepath, &file_stat);
+    if (err != 0) {
+        printf("Error: file_modified failed\n");
+        return -1;
+    }
+    if (difftime(file_stat.st_mtime, *old_time) > 0 ) {
+        *old_time = file_stat.st_mtime;
+        return 1;
+    }
+    return 0;
+}
 
 unsigned short checksum(void *b, int len) {
     unsigned short *buf = b;
@@ -202,7 +222,6 @@ void print_all_packet_attrs(struct packet_attr *attr_array, int num_attrs)
 
 int read_file_contents(char *filepath, char **output_buffer)
 {
-
     FILE *fp;
     char *buffer = NULL;
     int file_size;
@@ -686,10 +705,18 @@ int send_packet(char *specfile_path, in_addr_t dest_ip, in_addr_t src_ip)
     int serial_pseudo_size = 0;
     unsigned char *serial_packet_data = NULL;
 
-    if (read_file_contents(specfile_path, &specfile_content) < 0) {
-        printf("Error: failed to read file content for %s\n", specfile_path);
-        return -1;
+    if (file_modified(specfile_path, &specfile_mod_time)) {
+        if (read_file_contents(specfile_path, &specfile_content) < 0) {
+            printf("Error: failed to read file content for %s\n", specfile_path);
+            sleep(1);
+            return -1;
+        }
+        saved_specfile_content = specfile_content;
+    } else {
+        specfile_content = saved_specfile_content;
     }
+    
+
 
     num_attrs = load_packet(specfile_content, &packet_attrs, &max_header_size);
     if (num_attrs < 0) {

@@ -138,6 +138,7 @@ int main(int argc, char**argv)
     if (num_packets == 0) {
         while (true) {
             send_packet(specfile_path, dest_ip, src_ip);
+            usleep((useconds_t)interval);
         }
     } else {
         for (int i=0; i<num_packets; i++) {
