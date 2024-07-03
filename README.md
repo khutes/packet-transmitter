@@ -19,8 +19,8 @@ Build system is currently very basic. Binary named `pt` will be created in src d
 The above command will continuously send packets based on the specfile located at `../specfiles/tcp` to `127.0.0.1` from `127.0.0.1`
 
 ##### Additional options
-`--interval <milliseconds>` number of milliseconds to wait between packet sends, defautl value of 0 continuously sends packets
-`--num-packets <num>` number of packets to send, default value of 0 sends packets until program is stopped
+`--interval <milliseconds>` number of milliseconds to wait between packet sends, defautl value of 0 continuously sends packets    
+`--num-packets <num>` number of packets to send, default value of 0 sends packets until program is stopped    
 
 ## Specfile Format
 The specfiles need to follow a specific format for the packet to be correctly constructed. See example tcp specfile
@@ -47,8 +47,8 @@ If the attribute has a variable size it must follow this format followed by each
 If a variable length attribute is specified but no children exist the attribute will be ignored.
 
 #### Special Character
-`$` denotes the checksum whose value should be replaced with the auto calculated checksum.
-`^` denotes the pseudo header value which should be replaced with the real length of the packet header. The real length of the packet header is the sum of all attribute and child attribute lengths, NOT the max packer header lenght.
+`$` denotes the checksum whose value should be replaced with the auto calculated checksum.     
+`^` denotes the pseudo header value which should be replaced with the real length of the packet header. The real length of the packet header is the sum of all attribute and child attribute lengths, NOT the max packer header length.     
 
 #### Example Specfile
 ```
